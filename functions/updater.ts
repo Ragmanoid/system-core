@@ -14,6 +14,8 @@ export function getUpdateHandle<Type>({
                                           onAccess = async () => true,
                                           onFinish = async () => {
                                           },
+                                          onPreSave = async () => {
+                                          },
                                           excludeProps = new Set()
                                       }: {
                                           access: Role[];
@@ -24,6 +26,7 @@ export function getUpdateHandle<Type>({
                                           onCreate?: (e: Type, req: any) => Promise<void | string>;
                                           onAccess?: (e: Type, req: any) => Promise<boolean>;
                                           onFinish?: (e: Type, req: any, prev: Type) => Promise<void>;
+                                          onPreSave?: (e: Type, req: any, prev: Type) => Promise<void>;
                                       }
 ) {
     const handler = async (req: any, res: Response) => {
@@ -53,6 +56,7 @@ export function getUpdateHandle<Type>({
             for (let e of parameters)
                 element[e] = req.body[e]
 
+            await onPreSave(element, req, oldElement)
             await element.save()
             await onFinish(element, req, oldElement)
         } else {
@@ -70,6 +74,7 @@ export function getUpdateHandle<Type>({
             if (message)
                 throw new Error(`[${400}] ${message}`)
 
+            await onPreSave(element, req, {} as Type)
             await element.save()
             await onFinish(element, req, {} as Type)
         }
