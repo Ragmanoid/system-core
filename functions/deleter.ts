@@ -1,41 +1,47 @@
-import { Role } from "../../types/User";
-import { Response } from "express";
-import { createLogger } from "./logger";
-import asyncHandler from "express-async-handler";
+import { Role } from '../../types/User';
+import { Response } from 'express';
+import { createLogger } from './logger';
+import asyncHandler from 'express-async-handler';
 
-const logger = createLogger(__filename)
+const logger = createLogger(__filename);
+
 export function getDeleteHandle<Type>({
                                           access,
                                           DbModel,
-                                          onAccess = async () => true
+                                          onAccess = async () => true,
+                                          onFinish = async () => {
+                                          },
                                       }: {
                                           access: Role[];
                                           DbModel: any;
                                           onAccess?: (e: Type, req: any) => Promise<boolean>;
-                                      }
+                                          onFinish?: (e: Type, req: any) => Promise<void>;
+                                      },
 ) {
     const handle = async (req: any, res: Response) => {
         if (!access.includes(req.user.role))
-            throw new Error('[403]')
+            throw new Error('[403]');
 
-        const { id } = req.params
-        const e = await DbModel.findById(id)
+        const { id } = req.params;
+        const e = await DbModel.findById(id);
 
         if (!e)
-            throw new Error('[404]')
+            throw new Error('[404]');
 
-        const hasAccess = await onAccess(e, req)
+        const hasAccess = await onAccess(e, req);
         if (!hasAccess)
-            throw new Error('[403]')
+            throw new Error('[403]');
 
-        logger.info(e)
-        await e.deleteOne()
+        logger.info(e);
+        await e.deleteOne();
+
+        await onFinish(e, req);
 
         res.status(200).json({
-            message: "Успешно удалено",
+            message: 'Успешно удалено',
             error: false,
-        })
-    }
+        });
+    };
 
-    return asyncHandler(handle)
+    return asyncHandler(handle);
 }
